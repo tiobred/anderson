@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<process-definition xmlns="urn:jbpm.org:jpdl-3.2" name="Preparar ato de comunicação">
+    <description><![CDATA[..]]></description>  
+    <!-- SWIMLANES -->
+    <swimlane name="Nó de Desvio - Preparar ato de comunicação">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('5:1338,8:1469')}"/>
+    </swimlane>
+    <swimlane name="Secretaria">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('5:1338')}"/>
+    </swimlane>  
+    <!-- START-STATE -->
+    <start-state name="Início">
+        <task name="Tarefa inicial" swimlane="Secretaria"/>
+        <transition to="PAC- Verifica Expediente criado em Minuta (PAJ)" name="PAC- Verifica Expediente criado em Minuta (PAJ)"/>
+    </start-state>  
+    <!-- NODES -->
+    <task-node end-tasks="true" name="Preparar comunicação com o MiniPAC">
+        <task name="Preparar comunicação com o MiniPAC" swimlane="Secretaria">
+            <controller>
+                <variable name="miniPAC" mapped-name="miniPAC:miniPAC" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - Preparar ato de comunicação" name="Nó de Desvio - Preparar ato de comunicação">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="ForkComunicação" name="ForkComunicação">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="PAC - Apagar variáveis do MiniPAC" name="Cancelar Preparação"/>
+        <event type="task-create">
+            <action expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','P,M,E,C,L')}"/>
+            <action expression="#{taskInstanceUtil.setFrameDefaultTransition('ForkComunicação')}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('pje:fluxo:miniPac:DocJaExiste',true)}"/>
+        </event>
+    </task-node>
+    <fork name="ForkComunicação">
+        <transition to="É DJE?" name="É DJE?"/>
+        <transition to="É Mandado?" name="É Mandado?"/>
+        <transition to="É Correio?" name="É Correio?"/>
+        <transition to="É Carta?" name="É Carta?"/>
+        <transition to="É Sistema?" name="É Sistema?"/>
+    </fork>
+    <decision expression="#{comunicacaoProcessualAction.getExpedientesEletronico().size() &gt; 0 ? 'Encaminhar Via Sistema' : 'JoinComunicacao'}" name="É Sistema?">
+        <transition to="JoinComunicacao" name="JoinComunicacao"/>
+        <transition to="Encaminhar Via Sistema" name="Encaminhar Via Sistema"/>
+    </decision>
+    <node name="Encaminhar Via Sistema">
+        <transition to="JoinComunicacao" name="JoinComunicacao"/>
+        <event type="node-enter">
+            <action expression="#{comunicacaoProcessualAction.enviarExpedientesLancarMovimentos('E', 'processoExpedienteAtual', '#{preencherMovimento.deCodigo(60).associarAoDocumento(processoExpedienteAtual.getProcessoDocumento()).comComplementoDeCodigo(4).doTipoLivre().preencherComTexto(processoExpedienteAtual.tipoProcessoDocumento.tipoProcessoDocumento.toLowerCase()).lancarMovimento()}')}"/>
+        </event>
+    </node>
+    <decision expression="#{comunicacaoProcessualAction.getExpedientesDiario().size() &gt; 0 ? 'PublicarDJE' : 'JoinComunicacao'}" name="É DJE?">
+        <transition to="JoinComunicacao" name="JoinComunicacao"/>
+        <transition to="PublicarDJE" name="PublicarDJE"/>
+    </decision>
+    <decision expression="#{comunicacaoProcessualAction.getExpedientesMandados().size() &gt; 0 ? 'Tem uma Central?' : 'JoinComunicacao'}" name="É Mandado?">
+        <description><![CDATA[]]></description>
+        <transition to="JoinComunicacao" name="JoinComunicacao"/>
+        <transition to="Tem uma Central?" name="Tem uma Central?"/>
+    </decision>
+    <decision expression="#{conectorMandados.haVariasCentraisMandado() ? 'Selecionar Central de Mandado' : 'Encaminhar Central Mandados'}" name="Tem uma Central?">
+        <transition to="Encaminhar Central Mandados" name="Encaminhar Central Mandados"/>
+        <transition to="Selecionar Central de Mandado" name="Selecionar Central de Mandado"/>
+    </decision>
+    <task-node end-tasks="true" name="Selecionar Central de Mandado">
+        <task name="Selecionar Central de Mandado" swimlane="Secretaria">
+            <controller>
+                <variable name="Processo_Fluxo_expedientes_centralmandados" mapped-name="frame:Processo_Fluxo_expedientes_centralmandados" access="read,write"/>
+            </controller>
+        </task>
+        <description><![CDATA[]]></description>
+        <transition to="Testa seleção central" name="Encaminhar mandados"/>
+        <transition to="Nó de Desvio - Preparar ato de comunicação" name="Nó de Desvio - Preparar ato de comunicação">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action expression="#{taskInstanceUtil.setFrameDefaultTransition('Encaminhar Central Mandados')}"/>
+        </event>
+        <event type="task-end">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavel('pje:fluxo:centralEscolhida',conectorMandados.centralMandado)}"/>
+        </event>
+    </task-node>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('pje:fluxo:centralEscolhida') == null ? 'Selecionar Central de Mandado' : 'Encaminhar Central Mandados'}" name="Testa seleção central">
+        <transition to="Encaminhar Central Mandados" name="Encaminhar Central Mandados"/>
+        <transition to="Selecionar Central de Mandado" name="Selecionar Central de Mandado"/>
+    </decision>
+    <node name="Encaminhar Central Mandados">
+        <transition to="JoinComunicacao" name="JoinComunicacao"/>
+        <event type="task-create">
+            <action expression="#{conectorMandados.setCentralMandado(tramitacaoProcessualService.recuperaVariavel('pje:fluxo:centralEscolhida'))}"/>
+        </event>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pje:fluxo:centralEscolhida')}"/>
+        </event>
+    </node>
+    <decision expression="#{comunicacaoProcessualAction.getExpedientesCorreios().size() &gt; 0 ? 'Imprimir Correspondência' : 'JoinComunicacao'}" name="É Correio?">
+        <transition to="Imprimir Correspondência" name="Imprimir Correspondência"/>
+        <transition to="JoinComunicacao" name="JoinComunicacao"/>
+    </decision>
+    <task-node end-tasks="true" name="Imprimir Correspondência">
+        <task name="Imprimir Correspondência" swimlane="Secretaria">
+            <controller>
+                <variable name="Processo_Fluxo_expedientes_correios" mapped-name="frame:Processo_Fluxo_expedientes_correios" access="read,write"/>
+                <variable name="MovimentarLote" mapped-name="movimentarLote:MovimentarLote" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="JoinComunicacao" name="Concluir"/>
+        <transition to="Nó de Desvio - Preparar ato de comunicação" name="Nó de Desvio - Preparar ato de comunicação">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="node-enter">
+            <action expression="#{comunicacaoProcessualAction.enviarExpedientesLancarMovimentos('C', 'processoExpedienteAtual', '#{preencherMovimento.deCodigo(60).associarAoDocumento(processoExpedienteAtual.getProcessoDocumento()).comComplementoDeCodigo(4).doTipoLivre().preencherComTexto(processoExpedienteAtual.tipoProcessoDocumento.tipoProcessoDocumento.toLowerCase()).lancarMovimento()}')}"/>
+        </event>
+    </task-node>
+    <decision expression="#{comunicacaoProcessualAction.getExpedientesPrecatorias().size() &gt; 0 ? 'Encaminhar Carta' : 'JoinComunicacao'}" name="É Carta?">
+        <transition to="Encaminhar Carta" name="Encaminhar Carta"/>
+        <transition to="JoinComunicacao" name="JoinComunicacao"/>
+    </decision>
+    <task-node end-tasks="true" name="Encaminhar Carta">
+        <task name="Encaminhar Carta" swimlane="Secretaria">
+            <controller>
+                <variable name="Processo_Fluxo_expedientes_precatorias" mapped-name="frame:Processo_Fluxo_expedientes_precatorias" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="JoinComunicacao" name="Concluir"/>
+        <transition to="Nó de Desvio - Preparar ato de comunicação" name="Nó de Desvio - Preparar ato de comunicação">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-start">
+            <action name="Condicao do lancamento temporario de movimentos" expression="#{comunicacaoProcessualAction.enviarExpedientesLancarMovimentos('L', 'processoExpedienteAtual', '#{preencherMovimento.deCodigo(60).associarAoDocumento(processoExpedienteAtual.getProcessoDocumento()).comComplementoDeCodigo(4).doTipoLivre().preencherComTexto(processoExpedienteAtual.tipoProcessoDocumento.tipoProcessoDocumento.toLowerCase()).lancarMovimento()}')}"/>
+        </event>
+    </task-node>
+    <join name="JoinComunicacao">
+        <transition to="Término" name="Término"/>
+    </join>
+    <node name="PAC - Apagar variáveis do MiniPAC">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{miniPacService.apagarVariaveisMiniPacContexto()}"/>
+        </event>
+    </node>
+    <node name="PublicarDJE">
+        <transition to="JoinComunicacao" name="JoinComunicacao"/>
+        <event type="node-enter">
+            <action expression="#{comunicacaoProcessualAction.enviarExpedientesLancarMovimentos('P', 'processoExpedienteAtual', '#{preencherMovimento.deCodigo(60).associarAoDocumento(processoExpedienteAtual.getProcessoDocumento()).comComplementoDeCodigo(4).doTipoLivre().preencherComTexto(processoExpedienteAtual.tipoProcessoDocumento.tipoProcessoDocumento.toLowerCase()).lancarMovimento()}')}"/>
+        </event>
+    </node>
+    <decision expression="#{ tramitacaoProcessualService.recuperaVariavel('pje:miniPac:isExpedientesMinuta')  ? 'PAC - Apaga Variável ExpedienteMinuta - miniPAC': 'Preparar comunicação com o MiniPAC'}" name="PAC- Verifica Expediente criado em Minuta (PAJ)">
+        <transition to="Preparar comunicação com o MiniPAC" name="Preparar comunicação com o MiniPAC"/>
+        <transition to="PAC - Apaga Variável ExpedienteMinuta - miniPAC" name="PAC - Apaga Variável ExpedienteMinuta - miniPAC"/>
+    </decision>
+    <node name="PAC - Apaga Variável ExpedienteMinuta - miniPAC">
+        <transition to="ForkComunicação" name="ForkComunicação"/>
+        <event type="node-leave">
+            <action expression="#{org.jboss.seam.bpm.processInstance.contextInstance.deleteVariable('pje:miniPac:isExpedientesMinuta')}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('pje:miniPac:isExpedientesMinuta','false')}"/>
+        </event>
+    </node>
+    <task-node end-tasks="true" name="Nó de Desvio - Preparar ato de comunicação">
+        <task name="Nó de Desvio - Preparar ato de comunicação" swimlane="Nó de Desvio - Preparar ato de comunicação"/>
+        <transition to="Selecionar Central de Mandado" name="Selecionar Central de Mandado"/>
+        <transition to="Imprimir Correspondência" name="Imprimir Correspondência"/>
+        <transition to="Encaminhar Carta" name="Encaminhar Carta"/>
+        <transition to="Término" name="Término"/>
+        <transition to="Preparar comunicação com o MiniPAC" name="Preparar comunicação com o MiniPAC"/>
+    </task-node>
+    <end-state name="Término"/>  
+    <!-- PROCESS-EVENTS -->
+    <event type="node-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="before-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="transition">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-created">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="after-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-assign">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-create">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="timer">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>  
+    <!-- ACTIONS --> 
+</process-definition>
