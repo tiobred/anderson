@@ -1,0 +1,798 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<process-definition xmlns="urn:jbpm.org:jpdl-3.2" name="(CCPC) Preparar Ato Judicial">
+    <description><![CDATA[Permite elaborar minuta de atos judiciais (decisões e despachos)...]]></description>  
+    <!-- SWIMLANES -->
+    <swimlane name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('18:5197,8:1469')}"/>
+    </swimlane>
+    <swimlane name="Assessoria">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('18:5197,8:1469')}" actor-id="#{actor.id}"/>
+    </swimlane>
+    <swimlane name="Magistrado">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('8:1469')}"/>
+    </swimlane>  
+    <!-- START-STATE -->
+    <start-state name="Início">
+        <task name="Tarefa inicial" swimlane="Assessoria"/>
+        <transition to="(CCPC) É decisão?" name="(CCPC) É decisão?"/>
+        <event type="node-leave">
+            <action expression="#{org.jboss.seam.bpm.processInstance.contextInstance.deleteVariable('MovimentosLancadosTemporariamente')}"/>
+            <action expression="#{org.jboss.seam.bpm.processInstance.contextInstance.deleteVariable('AgrupamentosLancadosTemporariamente')}"/>
+        </event>
+    </start-state>  
+    <!-- NODES -->
+    <task-node end-tasks="true" name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+        <task name="Nó de Desvio - (CCPC) Preparar Ato Judicial" swimlane="Nó de Desvio - (CCPC) Preparar Ato Judicial"/>
+        <transition to="Término" name="Término"/>
+        <transition to="(CCPC) Concluso para decisão de urgência inicial" name="(CCPC) Concluso para decisão de urgência inicial"/>
+        <transition to="(CCPC) Assinar decisão de urgência inicial" name="(CCPC) Assinar decisão de urgência inicial"/>
+        <transition to="(CCPC) Concluso para decisão de urgência" name="(CCPC) Concluso para decisão de urgência"/>
+        <transition to="(CCPC) Assinar decisão de urgência" name="(CCPC) Assinar decisão de urgência"/>
+        <transition to="(CCPC) Concluso para decisão de agravo regimental" name="(CCPC) Concluso para decisão de Agravo Regimental"/>
+        <transition to="(CCPC) Assinar decisão de agravo regimental" name="(CCPC) Assinar decisão de Agravo Regimental"/>
+        <transition to="(CCPC) Concluso para decisão de agravo interno" name="(CCPC) Concluso para decisão de agravo interno"/>
+        <transition to="(CCPC) Assinar decisão de agravo interno" name="(CCPC) Assinar decisão de agravo interno"/>
+        <transition to="(CCPC) Concluso para decisão de extinção" name="(CCPC) Concluso para decisão de extinção"/>
+        <transition to="(CCPC) Assinar decisão de extinção" name="(CCPC) Assinar decisão de extinção"/>
+        <transition to="(CCPC) Concluso para decisão de reativação" name="(CCPC) Concluso para decisão de reativação"/>
+        <transition to="(CCPC) Assinar decisão de reativação" name="(CCPC) Assinar decisão de reativação"/>
+        <transition to="(CCPC) Concluso para despacho inicial" name="(CCPC) Concluso para despacho inicial"/>
+        <transition to="(CCPC) Assinar despacho inicial" name="(CCPC) Assinar despacho inicial"/>
+        <transition to="(CCPC) Concluso para despacho" name="(CCPC) Concluso para despacho"/>
+        <transition to="(CCPC) Assinar despacho" name="(CCPC) Assinar despacho"/>
+        <transition to="(CCPC) Concluso para decisão" name="(CCPC) Concluso para decisão"/>
+        <transition to="(CCPC) Assinar decisão" name="(CCPC) Assinar decisão"/>
+        <transition to="(CCPC) Concluso para decisão de embargos de declaração" name="(CCPC) Concluso para decisão de embargos de declaração"/>
+        <transition to="(CCPC) Assinar decisão de embargos de declaração" name="(CCPC) Assinar decisão de embargos de declaração"/>
+        <transition to="(CCPC) Concluso para despacho de cumprimento de acórdão" name="(CCPC) Concluso para despacho de cumprimento de acórdão"/>
+        <transition to="(CCPC) Assinar despacho de cumprimento de acórdão" name="(CCPC) Assinar despacho de cumprimento de acórdão"/>
+    </task-node>
+    <decision expression="#{true == tramitacaoProcessualService.recuperaVariavel('ccpc:paj:decisao') ? '(CCPC) Lançar movimento conclusos para decisão' : '(CCPC) É despacho?'}" name="(CCPC) É decisão?">
+        <transition to="(CCPC) Lançar movimento conclusos para decisão" name="(CCPC) Lançar movimento conclusos para decisão"/>
+        <transition to="(CCPC) É despacho?" name="(CCPC) É despacho?"/>
+    </decision>
+    <node name="(CCPC) Lançar movimento conclusos para decisão">
+        <transition to="(CCPC) É decisão de urgência inicial?" name="(CCPC) É decisão de urgência inicial?"/>
+        <event type="node-enter">
+            <action expression="#{preencherMovimento.deCodigo(51).comComplementoDeCodigo(3).doTipoDominio().preencherComElementoDeCodigo(6).lancarMovimento()}"/>
+        </event>
+    </node>
+    <decision expression="#{true == tramitacaoProcessualService.recuperaVariavel('ccpc:paj:decisao_urgencia_inicial') ? '(CCPC) Concluso para decisão de urgência inicial' : '(CCPC) É decisão de urgência?'}" name="(CCPC) É decisão de urgência inicial?">
+        <transition to="(CCPC) Concluso para decisão de urgência inicial" name="(CCPC) Concluso para decisão de urgência inicial"/>
+        <transition to="(CCPC) É decisão de urgência?" name="(CCPC) É decisão de urgência?"/>
+    </decision>
+    <task-node end-tasks="true" name="(CCPC) Concluso para decisão de urgência inicial">
+        <task name="(CCPC) Concluso para decisão de urgência inicial" swimlane="Assessoria">
+            <controller>
+                <variable name="minuta_ato_judicial" mapped-name="textEditCombo:minuta_ato_judicial" access="read,write"/>
+                <variable name="MinutarEmLote" mapped-name="minutarLote:MinutarEmLote" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - (CCPC) Preparar Ato Judicial" name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="(CCPC) Assinar decisão de urgência inicial" name="Encaminhar para assinatura"/>
+        <event type="node-leave">
+            <action expression="#{not empty processoHome.idProcessoDocumento ? org.jboss.seam.bpm.processInstance.contextInstance.setVariable('minutaEmElaboracao', processoHome.idProcessoDocumento) : ''}"/>
+        </event>
+        <event type="task-end">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('minutaEmElaboracao', tramitacaoProcessualService.recuperaVariavelTarefa('textEditCombo:minuta_ato_judicial'))}"/>
+        </event>
+        <event type="task-start">
+            <action name="Condicao do lancamento temporario de movimentos" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{true}')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:documento:tipo:minuta:ids','63,64')}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="(CCPC) Assinar decisão de urgência inicial">
+        <task name="(CCPC) Assinar decisão de urgência inicial" swimlane="Magistrado">
+            <controller>
+                <variable name="Processo_Fluxo_revisarMinuta" mapped-name="frame:Processo_Fluxo_revisarMinuta" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read,write"/>
+                <variable name="AssinaturaEmLote" mapped-name="assinarLote:AssinaturaEmLote" access="read,write"/>
+                <variable name="HomologarMovimentos" mapped-name="homologadorEventoTree:HomologarMovimentos" access="read"/>
+                <variable name="miniPAC" mapped-name="miniPAC:miniPAC" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - (CCPC) Preparar Ato Judicial" name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="(CCPC) Concluso para decisão de urgência inicial" name="Retornar para minuta"/>
+        <transition to="(CCPC) Testa Expediente Criado" name="(CCPC) Testa Expediente Criado">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('(CCPC) Testa Expediente Criado')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','P,M,E,C')}"/>
+        </event>
+        <event type="task-start">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('Processo_Fluxo_revisarMinuta','63,64')}"/>
+            <action name="upd" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{false}')}"/>
+        </event>
+    </task-node>
+    <decision expression="#{true == tramitacaoProcessualService.recuperaVariavel('ccpc:paj:decisao_urgencia') ? '(CCPC) Concluso para decisão de urgência' : '(CCPC) É decisão genérica?'}" name="(CCPC) É decisão de urgência?">
+        <transition to="(CCPC) Concluso para decisão de urgência" name="(CCPC) Concluso para decisão de urgência"/>
+        <transition to="(CCPC) É decisão genérica?" name="(CCPC) É decisão genérica?"/>
+    </decision>
+    <task-node end-tasks="true" name="(CCPC) Concluso para decisão de urgência">
+        <task name="(CCPC) Concluso para decisão de urgência" swimlane="Assessoria">
+            <controller>
+                <variable name="minuta_ato_judicial" mapped-name="textEditCombo:minuta_ato_judicial" access="read,write"/>
+                <variable name="MinutarEmLote" mapped-name="minutarLote:MinutarEmLote" access="read,write"/>
+                <variable name="miniPAC" mapped-name="miniPAC:miniPAC" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - (CCPC) Preparar Ato Judicial" name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="(CCPC) Assinar decisão de urgência" name="Encaminhar para assinatura"/>
+        <event type="task-create">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','P,M,E,C')}"/>
+        </event>
+        <event type="node-leave">
+            <action expression="#{not empty processoHome.idProcessoDocumento ? org.jboss.seam.bpm.processInstance.contextInstance.setVariable('minutaEmElaboracao', processoHome.idProcessoDocumento) : ''}"/>
+        </event>
+        <event type="task-end">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('minutaEmElaboracao', tramitacaoProcessualService.recuperaVariavelTarefa('textEditCombo:minuta_ato_judicial'))}"/>
+        </event>
+        <event type="task-start">
+            <action name="Condicao do lancamento temporario de movimentos" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{true}')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:documento:tipo:minuta:ids','63,64')}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="(CCPC) Assinar decisão de urgência">
+        <task name="(CCPC) Assinar decisão de urgência" swimlane="Magistrado">
+            <controller>
+                <variable name="Processo_Fluxo_revisarMinuta" mapped-name="frame:Processo_Fluxo_revisarMinuta" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read,write"/>
+                <variable name="AssinaturaEmLote" mapped-name="assinarLote:AssinaturaEmLote" access="read,write"/>
+                <variable name="HomologarMovimentos" mapped-name="homologadorEventoTree:HomologarMovimentos" access="read"/>
+                <variable name="miniPAC" mapped-name="miniPAC:miniPAC" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - (CCPC) Preparar Ato Judicial" name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="(CCPC) Concluso para decisão de urgência" name="Retornar para minuta"/>
+        <transition to="(CCPC) Testa Expediente Criado" name="(CCPC) Testa Expediente Criado">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('(CCPC) Testa Expediente Criado')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','P,M,E,C')}"/>
+        </event>
+        <event type="task-start">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('Processo_Fluxo_revisarMinuta','63,64')}"/>
+            <action name="upd" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{false}')}"/>
+        </event>
+    </task-node>
+    <decision expression="#{true == tramitacaoProcessualService.recuperaVariavel('ccpc:paj:decisao_generica') ? '(CCPC) Concluso para decisão' : '(CCPC) É decisão de agravo regimental?'}" name="(CCPC) É decisão genérica?">
+        <transition to="(CCPC) Concluso para decisão" name="(CCPC) Concluso para decisão"/>
+        <transition to="(CCPC) É decisão de agravo regimental?" name="(CCPC) É decisão de agravo regimental?"/>
+    </decision>
+    <task-node end-tasks="true" name="(CCPC) Concluso para decisão">
+        <task name="(CCPC) Concluso para decisão" swimlane="Assessoria">
+            <controller>
+                <variable name="minuta_ato_judicial" mapped-name="textEditCombo:minuta_ato_judicial" access="read,write"/>
+                <variable name="MinutarEmLote" mapped-name="minutarLote:MinutarEmLote" access="read,write"/>
+                <variable name="miniPAC" mapped-name="miniPAC:miniPAC" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - (CCPC) Preparar Ato Judicial" name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="(CCPC) Assinar decisão" name="Encaminhar para assinatura"/>
+        <event type="task-create">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','P,M,E,C')}"/>
+        </event>
+        <event type="node-leave">
+            <action expression="#{not empty processoHome.idProcessoDocumento ? org.jboss.seam.bpm.processInstance.contextInstance.setVariable('minutaEmElaboracao', processoHome.idProcessoDocumento) : ''}"/>
+        </event>
+        <event type="task-end">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('minutaEmElaboracao', tramitacaoProcessualService.recuperaVariavelTarefa('textEditCombo:minuta_ato_judicial'))}"/>
+        </event>
+        <event type="task-start">
+            <action name="Condicao do lancamento temporario de movimentos" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{true}')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:documento:tipo:minuta:ids','63,64')}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="(CCPC) Assinar decisão">
+        <task name="(CCPC) Assinar decisão" swimlane="Magistrado">
+            <controller>
+                <variable name="Processo_Fluxo_revisarMinuta" mapped-name="frame:Processo_Fluxo_revisarMinuta" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read,write"/>
+                <variable name="AssinaturaEmLote" mapped-name="assinarLote:AssinaturaEmLote" access="read,write"/>
+                <variable name="HomologarMovimentos" mapped-name="homologadorEventoTree:HomologarMovimentos" access="read"/>
+                <variable name="miniPAC" mapped-name="miniPAC:miniPAC" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - (CCPC) Preparar Ato Judicial" name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="(CCPC) Concluso para decisão" name="Retornar para minuta"/>
+        <transition to="(CCPC) Testa Expediente Criado" name="(CCPC) Testa Expediente Criado">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('(CCPC) Testa Expediente Criado')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','P,M,E,C')}"/>
+        </event>
+        <event type="task-start">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('Processo_Fluxo_revisarMinuta','63,64')}"/>
+            <action name="upd" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{false}')}"/>
+        </event>
+    </task-node>
+    <decision expression="#{true == tramitacaoProcessualService.recuperaVariavel('ccpc:paj:decisao_agravo_regimental') ? '(CCPC) Concluso para decisão de agravo regimental' : '(CCPC) É decisão de agravo interno?'}" name="(CCPC) É decisão de agravo regimental?">
+        <transition to="(CCPC) Concluso para decisão de agravo regimental" name="(CCPC) Concluso para decisão de agravo regimental"/>
+        <transition to="(CCPC) É decisão de agravo interno?" name="(CCPC) É decisão de agravo interno?"/>
+    </decision>
+    <task-node end-tasks="true" name="(CCPC) Concluso para decisão de agravo regimental">
+        <task name="(CCPC) Concluso para decisão de agravo regimental" swimlane="Assessoria">
+            <controller>
+                <variable name="minuta_ato_judicial" mapped-name="textEditCombo:minuta_ato_judicial" access="read,write"/>
+                <variable name="MinutarEmLote" mapped-name="minutarLote:MinutarEmLote" access="read,write"/>
+                <variable name="miniPAC" mapped-name="miniPAC:miniPAC" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - (CCPC) Preparar Ato Judicial" name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="(CCPC) Assinar decisão de agravo regimental" name="Encaminhar para assinatura"/>
+        <event type="task-create">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','P,M,E,C')}"/>
+        </event>
+        <event type="node-leave">
+            <action expression="#{not empty processoHome.idProcessoDocumento ? org.jboss.seam.bpm.processInstance.contextInstance.setVariable('minutaEmElaboracao', processoHome.idProcessoDocumento) : ''}"/>
+        </event>
+        <event type="task-end">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('minutaEmElaboracao', tramitacaoProcessualService.recuperaVariavelTarefa('textEditCombo:minuta_ato_judicial'))}"/>
+        </event>
+        <event type="task-start">
+            <action name="Condicao do lancamento temporario de movimentos" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{true}')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:documento:tipo:minuta:ids','63,64')}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="(CCPC) Assinar decisão de agravo regimental">
+        <task name="(CCPC) Assinar decisão de agravo regimental" swimlane="Magistrado">
+            <controller>
+                <variable name="Processo_Fluxo_revisarMinuta" mapped-name="frame:Processo_Fluxo_revisarMinuta" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read,write"/>
+                <variable name="AssinaturaEmLote" mapped-name="assinarLote:AssinaturaEmLote" access="read,write"/>
+                <variable name="HomologarMovimentos" mapped-name="homologadorEventoTree:HomologarMovimentos" access="read"/>
+                <variable name="miniPAC" mapped-name="miniPAC:miniPAC" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - (CCPC) Preparar Ato Judicial" name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="(CCPC) Concluso para decisão de agravo regimental" name="Retornar para minuta"/>
+        <transition to="(CCPC) Testa Expediente Criado" name="(CCPC) Testa Expediente Criado">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('(CCPC) Testa Expediente Criado')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','P,M,E,C')}"/>
+        </event>
+        <event type="task-start">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('Processo_Fluxo_revisarMinuta','63,64')}"/>
+            <action name="upd" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{false}')}"/>
+        </event>
+    </task-node>
+    <decision expression="#{true == tramitacaoProcessualService.recuperaVariavel('ccpc:paj:decisao_agravo_interno') ? '(CCPC) Concluso para decisão de agravo interno' : '(CCPC) É decisão de extinção?'}" name="(CCPC) É decisão de agravo interno?">
+        <transition to="(CCPC) Concluso para decisão de agravo interno" name="(CCPC) Concluso para decisão de agravo interno"/>
+        <transition to="(CCPC) É decisão de extinção?" name="(CCPC) É decisão de extinção?"/>
+    </decision>
+    <task-node end-tasks="true" name="(CCPC) Concluso para decisão de agravo interno">
+        <task name="(CCPC) Concluso para decisão de agravo interno" swimlane="Assessoria">
+            <controller>
+                <variable name="minuta_ato_judicial" mapped-name="textEditCombo:minuta_ato_judicial" access="read,write"/>
+                <variable name="MinutarEmLote" mapped-name="minutarLote:MinutarEmLote" access="read,write"/>
+                <variable name="miniPAC" mapped-name="miniPAC:miniPAC" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - (CCPC) Preparar Ato Judicial" name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="(CCPC) Assinar decisão de agravo interno" name="Encaminhar para assinatura"/>
+        <event type="task-create">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','P,M,E,C')}"/>
+        </event>
+        <event type="node-leave">
+            <action expression="#{not empty processoHome.idProcessoDocumento ? org.jboss.seam.bpm.processInstance.contextInstance.setVariable('minutaEmElaboracao', processoHome.idProcessoDocumento) : ''}"/>
+        </event>
+        <event type="task-end">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('minutaEmElaboracao', tramitacaoProcessualService.recuperaVariavelTarefa('textEditCombo:minuta_ato_judicial'))}"/>
+        </event>
+        <event type="task-start">
+            <action name="Condicao do lancamento temporario de movimentos" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{true}')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:documento:tipo:minuta:ids','63,64')}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="(CCPC) Assinar decisão de agravo interno">
+        <task name="(CCPC) Assinar decisão de agravo interno" swimlane="Magistrado">
+            <controller>
+                <variable name="Processo_Fluxo_revisarMinuta" mapped-name="frame:Processo_Fluxo_revisarMinuta" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read,write"/>
+                <variable name="AssinaturaEmLote" mapped-name="assinarLote:AssinaturaEmLote" access="read,write"/>
+                <variable name="HomologarMovimentos" mapped-name="homologadorEventoTree:HomologarMovimentos" access="read"/>
+                <variable name="miniPAC" mapped-name="miniPAC:miniPAC" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - (CCPC) Preparar Ato Judicial" name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="(CCPC) Concluso para decisão de agravo interno" name="Retornar para minuta"/>
+        <transition to="(CCPC) Testa Expediente Criado" name="(CCPC) Testa Expediente Criado">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('(CCPC) Testa Expediente Criado')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','P,M,E,C')}"/>
+        </event>
+        <event type="task-start">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('Processo_Fluxo_revisarMinuta','63,64')}"/>
+            <action name="upd" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{false}')}"/>
+        </event>
+    </task-node>
+    <decision expression="#{true == tramitacaoProcessualService.recuperaVariavel('ccpc:paj:decisao_extincao') ? '(CCPC) Concluso para decisão de extinção' : '(CCPC) É decisão de reativação?'}" name="(CCPC) É decisão de extinção?">
+        <transition to="(CCPC) Concluso para decisão de extinção" name="(CCPC) Concluso para decisão de extinção"/>
+        <transition to="(CCPC) É decisão de reativação?" name="(CCPC) É decisão de reativação?"/>
+    </decision>
+    <task-node end-tasks="true" name="(CCPC) Concluso para decisão de extinção">
+        <task name="(CCPC) Concluso para decisão de extinção" swimlane="Assessoria">
+            <controller>
+                <variable name="minuta_ato_judicial" mapped-name="textEditCombo:minuta_ato_judicial" access="read,write"/>
+                <variable name="MinutarEmLote" mapped-name="minutarLote:MinutarEmLote" access="read,write"/>
+                <variable name="miniPAC" mapped-name="miniPAC:miniPAC" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - (CCPC) Preparar Ato Judicial" name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="(CCPC) Assinar decisão de extinção" name="Encaminhar para assinatura"/>
+        <event type="task-create">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','P,M,E,C')}"/>
+        </event>
+        <event type="node-leave">
+            <action expression="#{not empty processoHome.idProcessoDocumento ? org.jboss.seam.bpm.processInstance.contextInstance.setVariable('minutaEmElaboracao', processoHome.idProcessoDocumento) : ''}"/>
+        </event>
+        <event type="task-end">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('minutaEmElaboracao', tramitacaoProcessualService.recuperaVariavelTarefa('textEditCombo:minuta_ato_judicial'))}"/>
+        </event>
+        <event type="task-start">
+            <action name="Condicao do lancamento temporario de movimentos" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{true}')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:documento:tipo:minuta:ids','63,64')}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="(CCPC) Assinar decisão de extinção">
+        <task name="(CCPC) Assinar decisão de extinção" swimlane="Magistrado">
+            <controller>
+                <variable name="Processo_Fluxo_revisarMinuta" mapped-name="frame:Processo_Fluxo_revisarMinuta" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read,write"/>
+                <variable name="AssinaturaEmLote" mapped-name="assinarLote:AssinaturaEmLote" access="read,write"/>
+                <variable name="HomologarMovimentos" mapped-name="homologadorEventoTree:HomologarMovimentos" access="read"/>
+                <variable name="miniPAC" mapped-name="miniPAC:miniPAC" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="(CCPC) Concluso para decisão de extinção" name="Retornar para minuta"/>
+        <transition to="Nó de Desvio - (CCPC) Preparar Ato Judicial" name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="(CCPC) Testa Expediente Criado" name="(CCPC) Testa Expediente Criado">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('(CCPC) Testa Expediente Criado')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','P,M,E,C')}"/>
+        </event>
+        <event type="task-start">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('Processo_Fluxo_revisarMinuta','63,64')}"/>
+            <action name="upd" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{false}')}"/>
+        </event>
+    </task-node>
+    <decision expression="#{true == tramitacaoProcessualService.recuperaVariavel('ccpc:paj:decisao_reativacao') ? '(CCPC) Concluso para decisão de reativação' : '(CCPC) É decisão de embargos de declaração?'}" name="(CCPC) É decisão de reativação?">
+        <transition to="(CCPC) Concluso para decisão de reativação" name="(CCPC) Concluso para decisão de reativação"/>
+        <transition to="(CCPC) É decisão de embargos de declaração?" name="(CCPC) É decisão de embargos de declaração?"/>
+    </decision>
+    <task-node end-tasks="true" name="(CCPC) Concluso para decisão de reativação">
+        <task name="(CCPC) Concluso para decisão de reativação" swimlane="Assessoria">
+            <controller>
+                <variable name="minuta_ato_judicial" mapped-name="textEditCombo:minuta_ato_judicial" access="read,write"/>
+                <variable name="MinutarEmLote" mapped-name="minutarLote:MinutarEmLote" access="read,write"/>
+                <variable name="miniPAC" mapped-name="miniPAC:miniPAC" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - (CCPC) Preparar Ato Judicial" name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="(CCPC) Assinar decisão de reativação" name="Encaminhar para assinatura"/>
+        <event type="task-create">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','P,M,E,C')}"/>
+        </event>
+        <event type="node-leave">
+            <action expression="#{not empty processoHome.idProcessoDocumento ? org.jboss.seam.bpm.processInstance.contextInstance.setVariable('minutaEmElaboracao', processoHome.idProcessoDocumento) : ''}"/>
+        </event>
+        <event type="task-end">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('minutaEmElaboracao', tramitacaoProcessualService.recuperaVariavelTarefa('textEditCombo:minuta_ato_judicial'))}"/>
+        </event>
+        <event type="task-start">
+            <action name="Condicao do lancamento temporario de movimentos" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{true}')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:documento:tipo:minuta:ids','63,64')}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="(CCPC) Assinar decisão de reativação">
+        <task name="(CCPC) Assinar decisão de reativação" swimlane="Magistrado">
+            <controller>
+                <variable name="Processo_Fluxo_revisarMinuta" mapped-name="frame:Processo_Fluxo_revisarMinuta" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read,write"/>
+                <variable name="AssinaturaEmLote" mapped-name="assinarLote:AssinaturaEmLote" access="read,write"/>
+                <variable name="HomologarMovimentos" mapped-name="homologadorEventoTree:HomologarMovimentos" access="read"/>
+                <variable name="miniPAC" mapped-name="miniPAC:miniPAC" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - (CCPC) Preparar Ato Judicial" name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="(CCPC) Concluso para decisão de reativação" name="Retornar para minuta"/>
+        <transition to="(CCPC) Testa Expediente Criado" name="(CCPC) Testa Expediente Criado">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('(CCPC) Testa Expediente Criado')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','P,M,E,C')}"/>
+        </event>
+        <event type="task-start">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('Processo_Fluxo_revisarMinuta','63,64')}"/>
+            <action name="upd" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{false}')}"/>
+        </event>
+    </task-node>
+    <decision expression="#{true == tramitacaoProcessualService.recuperaVariavel('ccpc:paj:decisao_embargos_declaracao') ? '(CCPC) Concluso para decisão de embargos de declaração' : 'Término'}" name="(CCPC) É decisão de embargos de declaração?">
+        <transition to="(CCPC) Concluso para decisão de embargos de declaração" name="(CCPC) Concluso para decisão de embargos de declaração"/>
+        <transition to="Término" name="Término"/>
+    </decision>
+    <task-node end-tasks="true" name="(CCPC) Concluso para decisão de embargos de declaração">
+        <task name="(CCPC) Concluso para decisão de embargos de declaração" swimlane="Assessoria">
+            <controller>
+                <variable name="minuta_ato_judicial" mapped-name="textEditCombo:minuta_ato_judicial" access="read,write"/>
+                <variable name="MinutarEmLote" mapped-name="minutarLote:MinutarEmLote" access="read,write"/>
+                <variable name="miniPAC" mapped-name="miniPAC:miniPAC" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - (CCPC) Preparar Ato Judicial" name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="(CCPC) Assinar decisão de embargos de declaração" name="Encaminhar para assinatura"/>
+        <event type="task-create">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','P,M,E,C')}"/>
+        </event>
+        <event type="node-leave">
+            <action expression="#{not empty processoHome.idProcessoDocumento ? org.jboss.seam.bpm.processInstance.contextInstance.setVariable('minutaEmElaboracao', processoHome.idProcessoDocumento) : ''}"/>
+        </event>
+        <event type="task-end">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('minutaEmElaboracao', tramitacaoProcessualService.recuperaVariavelTarefa('textEditCombo:minuta_ato_judicial'))}"/>
+        </event>
+        <event type="task-start">
+            <action name="Condicao do lancamento temporario de movimentos" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{true}')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:documento:tipo:minuta:ids','63,64')}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="(CCPC) Assinar decisão de embargos de declaração">
+        <task name="(CCPC) Assinar decisão de embargos de declaração" swimlane="Magistrado">
+            <controller>
+                <variable name="Processo_Fluxo_revisarMinuta" mapped-name="frame:Processo_Fluxo_revisarMinuta" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read,write"/>
+                <variable name="AssinaturaEmLote" mapped-name="assinarLote:AssinaturaEmLote" access="read,write"/>
+                <variable name="HomologarMovimentos" mapped-name="homologadorEventoTree:HomologarMovimentos" access="read"/>
+                <variable name="miniPAC" mapped-name="miniPAC:miniPAC" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - (CCPC) Preparar Ato Judicial" name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="(CCPC) Concluso para decisão de embargos de declaração" name="Retornar para minuta"/>
+        <transition to="(CCPC) Testa Expediente Criado" name="(CCPC) Testa Expediente Criado">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('(CCPC) Testa Expediente Criado')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','P,M,E,C')}"/>
+        </event>
+        <event type="task-start">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('Processo_Fluxo_revisarMinuta','63,64')}"/>
+            <action name="upd" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{false}')}"/>
+        </event>
+    </task-node>
+    <decision expression="#{true == tramitacaoProcessualService.recuperaVariavel('ccpc:paj:despacho') ? '(CCPC) Lançar movimento conclusos para despacho' : 'Término'}" name="(CCPC) É despacho?">
+        <transition to="(CCPC) Lançar movimento conclusos para despacho" name="(CCPC) Lançar movimento conclusos para despacho"/>
+        <transition to="Término" name="Término"/>
+    </decision>
+    <node name="(CCPC) Lançar movimento conclusos para despacho">
+        <transition to="(CCPC) É despacho inicial?" name="(CCPC) É despacho inicial?"/>
+        <event type="node-enter">
+            <action expression="#{preencherMovimento.deCodigo(51).comComplementoDeCodigo(3).doTipoDominio().preencherComElementoDeCodigo(5).lancarMovimento()}"/>
+        </event>
+    </node>
+    <decision expression="#{true == tramitacaoProcessualService.recuperaVariavel('ccpc:paj:despacho_inicial') ? '(CCPC) Concluso para despacho inicial' : '(CCPC) É despacho genérico?'}" name="(CCPC) É despacho inicial?">
+        <transition to="(CCPC) Concluso para despacho inicial" name="(CCPC) Concluso para despacho inicial"/>
+        <transition to="(CCPC) É despacho genérico?" name="(CCPC) É despacho genérico?"/>
+    </decision>
+    <task-node end-tasks="true" name="(CCPC) Concluso para despacho inicial">
+        <task name="(CCPC) Concluso para despacho inicial" swimlane="Assessoria">
+            <controller>
+                <variable name="minuta_ato_judicial" mapped-name="textEditCombo:minuta_ato_judicial" access="read,write"/>
+                <variable name="MinutarEmLote" mapped-name="minutarLote:MinutarEmLote" access="read,write"/>
+                <variable name="miniPAC" mapped-name="miniPAC:miniPAC" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - (CCPC) Preparar Ato Judicial" name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="(CCPC) Assinar despacho inicial" name="Encaminhar para assinatura"/>
+        <event type="task-create">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','P,M,E,C')}"/>
+        </event>
+        <event type="node-leave">
+            <action name="upd" expression="#{not empty processoHome.idProcessoDocumento ? org.jboss.seam.bpm.processInstance.contextInstance.setVariable('minutaEmElaboracao', processoHome.idProcessoDocumento) : ''}"/>
+        </event>
+        <event type="task-end">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavel('minutaEmElaboracao', tramitacaoProcessualService.recuperaVariavelTarefa('textEditCombo:minuta_ato_judicial'))}"/>
+        </event>
+        <event type="task-start">
+            <action name="upd" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{true}')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:documento:tipo:minuta:ids','63,64')}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="(CCPC) Assinar despacho inicial">
+        <task name="(CCPC) Assinar despacho inicial" swimlane="Magistrado">
+            <controller>
+                <variable name="Processo_Fluxo_revisarMinuta" mapped-name="frame:Processo_Fluxo_revisarMinuta" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read,write"/>
+                <variable name="AssinaturaEmLote" mapped-name="assinarLote:AssinaturaEmLote" access="read,write"/>
+                <variable name="HomologarMovimentos" mapped-name="homologadorEventoTree:HomologarMovimentos" access="read"/>
+                <variable name="miniPAC" mapped-name="miniPAC:miniPAC" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - (CCPC) Preparar Ato Judicial" name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="(CCPC) Concluso para despacho inicial" name="Retornar para minuta"/>
+        <transition to="(CCPC) Testa Expediente Criado" name="(CCPC) Testa Expediente Criado">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('(CCPC) Testa Expediente Criado')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','P,M,E,C')}"/>
+        </event>
+        <event type="task-start">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('Processo_Fluxo_revisarMinuta','63,64')}"/>
+            <action name="upd" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{false}')}"/>
+        </event>
+    </task-node>
+    <decision expression="#{true == tramitacaoProcessualService.recuperaVariavel('ccpc:paj:despacho_generico') ? '(CCPC) Concluso para despacho' : '(CCPC) É despacho de cumprimento de acórdão?'}" name="(CCPC) É despacho genérico?">
+        <transition to="(CCPC) Concluso para despacho" name="(CCPC) Concluso para despacho"/>
+        <transition to="(CCPC) É despacho de cumprimento de acórdão?" name="(CCPC) É despacho de cumprimento de acórdão?"/>
+    </decision>
+    <task-node end-tasks="true" name="(CCPC) Concluso para despacho">
+        <task name="(CCPC) Concluso para despacho" swimlane="Assessoria">
+            <controller>
+                <variable name="minuta_ato_judicial" mapped-name="textEditCombo:minuta_ato_judicial" access="read,write"/>
+                <variable name="MinutarEmLote" mapped-name="minutarLote:MinutarEmLote" access="read,write"/>
+                <variable name="miniPAC" mapped-name="miniPAC:miniPAC" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - (CCPC) Preparar Ato Judicial" name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="(CCPC) Assinar despacho" name="Encaminhar para assinatura"/>
+        <event type="task-create">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','P,M,E,C')}"/>
+        </event>
+        <event type="node-leave">
+            <action expression="#{not empty processoHome.idProcessoDocumento ? org.jboss.seam.bpm.processInstance.contextInstance.setVariable('minutaEmElaboracao', processoHome.idProcessoDocumento) : ''}"/>
+        </event>
+        <event type="task-end">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('minutaEmElaboracao', tramitacaoProcessualService.recuperaVariavelTarefa('textEditCombo:minuta_ato_judicial'))}"/>
+        </event>
+        <event type="task-start">
+            <action name="Condicao do lancamento temporario de movimentos" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{true}')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:documento:tipo:minuta:ids','63,64')}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="(CCPC) Assinar despacho">
+        <task name="(CCPC) Assinar despacho" swimlane="Magistrado">
+            <controller>
+                <variable name="Processo_Fluxo_revisarMinuta" mapped-name="frame:Processo_Fluxo_revisarMinuta" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read,write"/>
+                <variable name="AssinaturaEmLote" mapped-name="assinarLote:AssinaturaEmLote" access="read,write"/>
+                <variable name="HomologarMovimentos" mapped-name="homologadorEventoTree:HomologarMovimentos" access="read"/>
+                <variable name="miniPAC" mapped-name="miniPAC:miniPAC" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - (CCPC) Preparar Ato Judicial" name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="(CCPC) Concluso para despacho" name="Retornar para minuta"/>
+        <transition to="(CCPC) Testa Expediente Criado" name="(CCPC) Testa Expediente Criado">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('(CCPC) Testa Expediente Criado')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','P,M,E,C')}"/>
+        </event>
+        <event type="task-start">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('Processo_Fluxo_revisarMinuta','63,64')}"/>
+            <action name="upd" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{false}')}"/>
+        </event>
+    </task-node>
+    <decision expression="#{true == tramitacaoProcessualService.recuperaVariavel('ccpc:paj:despacho_cumprimento_acordao') ? '(CCPC) Concluso para despacho de cumprimento de acórdão' : 'Término'}" name="(CCPC) É despacho de cumprimento de acórdão?">
+        <transition to="(CCPC) Concluso para despacho de cumprimento de acórdão" name="(CCPC) Concluso para despacho de cumprimento de acórdão"/>
+        <transition to="Término" name="Término"/>
+    </decision>
+    <task-node end-tasks="true" name="(CCPC) Concluso para despacho de cumprimento de acórdão">
+        <task name="(CCPC) Concluso para despacho de cumprimento de acórdão" swimlane="Assessoria">
+            <controller>
+                <variable name="minuta_ato_judicial" mapped-name="textEditCombo:minuta_ato_judicial" access="read,write"/>
+                <variable name="MinutarEmLote" mapped-name="minutarLote:MinutarEmLote" access="read,write"/>
+                <variable name="miniPAC" mapped-name="miniPAC:miniPAC" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - (CCPC) Preparar Ato Judicial" name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="(CCPC) Assinar despacho de cumprimento de acórdão" name="Encaminhar para assinatura"/>
+        <event type="task-create">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','P,M,E,C')}"/>
+        </event>
+        <event type="node-leave">
+            <action expression="#{not empty processoHome.idProcessoDocumento ? org.jboss.seam.bpm.processInstance.contextInstance.setVariable('minutaEmElaboracao', processoHome.idProcessoDocumento) : ''}"/>
+        </event>
+        <event type="task-end">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('minutaEmElaboracao', tramitacaoProcessualService.recuperaVariavelTarefa('textEditCombo:minuta_ato_judicial'))}"/>
+        </event>
+        <event type="task-start">
+            <action name="Condicao do lancamento temporario de movimentos" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{true}')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:documento:tipo:minuta:ids','63,64')}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="(CCPC) Assinar despacho de cumprimento de acórdão">
+        <task name="(CCPC) Assinar despacho de cumprimento de acórdão" swimlane="Magistrado">
+            <controller>
+                <variable name="Processo_Fluxo_revisarMinuta" mapped-name="frame:Processo_Fluxo_revisarMinuta" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read,write"/>
+                <variable name="AssinaturaEmLote" mapped-name="assinarLote:AssinaturaEmLote" access="read,write"/>
+                <variable name="HomologarMovimentos" mapped-name="homologadorEventoTree:HomologarMovimentos" access="read"/>
+                <variable name="miniPAC" mapped-name="miniPAC:miniPAC" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - (CCPC) Preparar Ato Judicial" name="Nó de Desvio - (CCPC) Preparar Ato Judicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="(CCPC) Concluso para despacho de cumprimento de acórdão" name="Retornar para minuta"/>
+        <transition to="(CCPC) Testa Expediente Criado" name="(CCPC) Testa Expediente Criado">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('(CCPC) Testa Expediente Criado')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','P,M,E,C')}"/>
+        </event>
+        <event type="task-start">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('Processo_Fluxo_revisarMinuta','63,64')}"/>
+            <action name="upd" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{false}')}"/>
+        </event>
+    </task-node>
+    <decision expression="#{!empty tramitacaoProcessualService.recuperaVariavel('comunicacaoProcessualAction:idsExpedientes') ? 'PAJ - Grava Variável de Expediente Gerado' : '(CCPC) Apaga variáveis usadas'}" name="(CCPC) Testa Expediente Criado">
+        <transition to="PAJ - Grava Variável de Expediente Gerado" name="PAJ - Grava Variável de Expediente Gerado"/>
+        <transition to="(CCPC) Apaga variáveis usadas" name="(CCPC) Apaga variáveis usadas"/>
+    </decision>
+    <node name="PAJ - Grava Variável de Expediente Gerado">
+        <transition to="PAJ - Desloca Processo para Fluxo do PAC" name="PAJ - Desloca Processo para Fluxo do PAC"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel(&quot;pje:miniPac:isExpedientesMinuta&quot;,'true')}"/>
+        </event>
+    </node>
+    <node name="PAJ - Desloca Processo para Fluxo do PAC">
+        <transition to="(CCPC) Altera variáveis miniPac" name="(CCPC) Altera variáveis miniPac"/>
+        <event type="node-leave">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(),'PAC',org.jboss.seam.bpm.processInstance.getContextInstance().getVariables())}"/>
+        </event>
+    </node>
+    <node name="(CCPC) Apaga variáveis usadas">
+        <transition to="Término" name="Término"/>
+        <event type="node-leave">
+            <action name="upd" expression="#{tramitacaoProcessualService.apagaVariavel('ccpc:paj:decisao')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.apagaVariavel('ccpc:paj:decisao_urgencia_inicial')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.apagaVariavel('ccpc:paj:decisao_urgencia')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.apagaVariavel('ccpc:paj:decisao_generica')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.apagaVariavel('ccpc:paj:decisao_agravo_regimental')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.apagaVariavel('ccpc:paj:decisao_agravo_interno')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.apagaVariavel('ccpc:paj:decisao_extincao')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.apagaVariavel('ccpc:paj:decisao_reativacao')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.apagaVariavel('ccpc:paj:decisao_embargos_declaracao')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.apagaVariavel('ccpc:paj:despacho')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.apagaVariavel('ccpc:paj:despacho_inicial')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.apagaVariavel('ccpc:paj:despacho_generico')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.apagaVariavel('ccpc:paj:despacho_cumprimento_acordao')}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel(&quot;pje:miniPac:isExpedientesMinuta&quot;,'false')}"/>
+        </event>
+    </node>
+    <node name="(CCPC) Altera variáveis miniPac">
+        <transition to="(CCPC) Aguardar retorno de expedientes" name="(CCPC) Aguardar retorno de expedientes"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel(&quot;pje:miniPac:isExpedientesMinuta&quot;,'false')}"/>
+        </event>
+    </node>
+    <process-state name="(CCPC) Aguardar retorno de expedientes">
+        <sub-process name="Controle de prazos" binding="late"/>
+        <transition to="Término" name="Término"/>
+    </process-state>
+    <end-state name="Término">
+        <event type="node-enter">
+            <action expression="#{org.jboss.seam.bpm.processInstance.contextInstance.deleteVariable('minutaEmElaboracao')}"/>
+            <action expression="#{org.jboss.seam.bpm.processInstance.contextInstance.deleteVariable('MovimentosLancadosTemporariamente')}"/>
+            <action expression="#{org.jboss.seam.bpm.processInstance.contextInstance.deleteVariable('AgrupamentosLancadosTemporariamente')}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('ccpc:paj:decisao','false')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavel('ccpc:paj:decisao_urgencia_inicial','false')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavel('ccpc:paj:decisao_urgencia','false')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavel('ccpc:paj:decisao_generica','false')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavel('ccpc:paj:decisao_agravo_regimental','false')}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('ccpc:paj:decisao_agravo_interno','false')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavel('ccpc:paj:decisao_extincao','false')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavel('ccpc:paj:decisao_reativacao','false')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavel('ccpc:paj:decisao_embargos_declaracao','false')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavel('ccpc:paj:despacho','false')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavel('ccpc:paj:despacho_inicial','false')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavel('ccpc:paj:despacho_generico','false')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavel('ccpc:paj:despacho_cumprimento_acordao','false')}"/>
+        </event>
+    </end-state>  
+    <!-- PROCESS-EVENTS -->
+    <event type="node-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="before-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="transition">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-created">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="after-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-assign">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-create">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="timer">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>  
+    <!-- ACTIONS --> 
+</process-definition>
